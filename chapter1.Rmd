@@ -11,7 +11,7 @@ date()
 ```
 
 
-## **Inital thoughts on the course**
+## **Initial thoughts on the course**
 I look very much forward to get more knowledge with regards to the usage of programming languages and specifically R. I have in my work so far, analyzing imaging data collected with MRI, CT and SPECT, been relying on the code provided to me from our computer scientists. Hence, my experience of R and Python so far are limited to understanding what the code given me can do and sometimes being able to change a few parameters. 
 
 I am looking forward to being able to modify prior code in a more sophisticated way, and hopefully after this course be able to produce some part of the analysis parameters myself. Especially with regards to statistics and being able to supplement the nice graphs produced in R with also a numeric output, where I earlier been able to use R to draw the graphs, but been using other software for the statistical calculations.
