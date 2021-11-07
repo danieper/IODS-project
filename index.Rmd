@@ -1,5 +1,6 @@
 ---
 title: "IODS course project"
+author: "Daniel Persson"
 output:
   html_document:
     theme: cosmo
