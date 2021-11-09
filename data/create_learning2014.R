@@ -16,26 +16,21 @@ str(learning2014)
 #Investigate the dimensions of the data
 dim(learning2014)
 
-#Create an analysis dataset with the variables gender, age, attitude, deep, stra, surf and points by:
-#First combining the deep, strategic and surface questions
-
-
-#Instead of individually sum the variables is two steps the mutate function is used 
+#To create an analysis dataset with the variables gender, age, attitude, deep, stra, surf and points the mutate function is used
+#instead of individually sum the variables is two steps.
+#E.g. Mutate funtion:
 #data <- data %>%
 #  dplyr::mutate(new_var = var1 + var2 + var3)
-#E.g.
-#data <- data %>%
- # dplyr::mutate(d_sm = D03+D11+D19+D27,
-  #              d_ri = D07+D14+D22+D30)
-#Additon of the Deep, stra and Surf as new mean variables using above argument
+
+#Additon of the deep, stra and surf as new mean variables using above argument
 learning2014 <- learning2014 %>%
-  dplyr::mutate(Deep = (D03 + D11 + D19 + D27 + D07 + D14 + D22 + D30 + D06 + D15 + D23 + D31)/12)
+  dplyr::mutate(deep = (D03 + D11 + D19 + D27 + D07 + D14 + D22 + D30 + D06 + D15 + D23 + D31)/12)
 
 learning2014 <- learning2014 %>%
-  dplyr::mutate(Stra = (ST01 + ST09 + ST17 + ST25 + ST04 + ST12 + ST20 + ST28)/8)
+  dplyr::mutate(stra = (ST01 + ST09 + ST17 + ST25 + ST04 + ST12 + ST20 + ST28)/8)
 
 learning2014 <- learning2014 %>%
-  dplyr::mutate(Surf = (SU02 + SU10 + SU18 + SU26 + SU05 + SU13 + SU21 + SU29 + SU08 + SU16 + SU24 + SU32)/12)
+  dplyr::mutate(surf = (SU02 + SU10 + SU18 + SU26 + SU05 + SU13 + SU21 + SU29 + SU08 + SU16 + SU24 + SU32)/12)
 
 #calculating the mean of attitude by dividing the sum of the 10 questions with 10
 learning2014 <- learning2014 %>%
@@ -43,10 +38,17 @@ learning2014 <- learning2014 %>%
 
 #making the column name consistent
 learning2014 <- learning2014 %>%
-  dplyr::rename("Gender" = "gender")
+  dplyr::rename("age" = "Age")
+
+learning2014 <- learning2014 %>%
+  dplyr::rename("points" = "Points")
+
+learning2014 <- learning2014 %>%
+  dplyr::rename("attitude" = "Attitude")
+
 
 #Define relevant headers for filtering
-header_subset <- c("Gender", "Age", "Attitude", "Deep", "Stra", "Surf", "Points")
+header_subset <- c("gender", "age", "attitude", "deep", "stra", "surf", "points")
 
 #Selecting the subset from the data containing one of the headers
 learning2014_subset <- select(learning2014, one_of(header_subset))
@@ -54,7 +56,7 @@ learning2014_subset <- select(learning2014, one_of(header_subset))
 str(learning2014_subset)
 
 
-learning2014_subset <- filter(learning2014_subset, Points > 0)
+learning2014_subset <- filter(learning2014_subset, points > 0)
 
 str(learning2014_subset)
 
