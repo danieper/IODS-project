@@ -1,13 +1,199 @@
-# Insert chapter 2 title here
+---
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+# Regression and model validation
 
-*Describe the work you have done this week and summarize your learning.*
-
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
 
 ```{r}
 date()
 ```
 
-Here we go again...
+**To start, the working directory it assigned to where the data set is stored and the data is read from pre processed csv file. To get an initial understanding of the data set the structure and dimensions are investigated**
+
+``` {r}
+#Setting Working Directory
+setwd("C:/IODS/IODS-project")
+
+#Reading the data set
+learning2014_subset <- read.csv("data/learning2014_subset.csv")
+
+#Investigating the structure and dimantions of the data set
+str(learning2014_subset)
+dim(learning2014_subset)
+
+
+```
+
+As we can read out from the file name "learning2014_subset", the data set used in this chapter is a subset of "learning2014". Learning2014 is a summary of the answers received  from students in a course survey, evaluating teaching and learning, conducted between 2014.12.03 - 2015.01.10 following the completion of the course "Johdatus yhteiskuntatilastotieteeseen, syksy 2014" (in English: Introduction to Social Statistics, Autumn 2014). 
+
+The full data set can be found on: [link] (https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS3-data.txt)
+
+and a full data description can be found on: [link] (https://www.mv.helsinki.fi/home/kvehkala/JYTmooc/JYTOPKYS2-meta.txt)
+
+
+The questions in the survey was designed to be answered using a 5 levels likert scale, where each question was answered by choosing a number between **1-5** representing how well the statement aligned with the students experience. The questions belonged to one of the 4 different categories listed below, (for further analysis, the abbreviation showed within parenthesis will be used):
+
+1. The students general attitude to statistics (**attitude**).
+2. The strategy the student used to study during the course (**stra**). 
+3. The students tendency to use a *"surface approach"* (**surf**) to get through the course material e.g. memorizing information without understanding or aiming on just passing the course. 
+4. The students tendency to use a *"deep approach"* (**deep**) to get through the course material e.g. intending to maximize the understanding of the provided information and strong commitment to learning.
+
+The "learning2014_subset" data collection has been processed to enable a better overview of how the students performances, e.g. final exam results, are connected to the students attitude, study strategy and study approach, as well as, age and gender of the student. 
+
+To make the categories, including multiple question, more manageable the mean of the values scored for all questions in each of the four categories, respectively is used for the analysis. This processing step explains why a survey including only natural numbers as answers can be displayed with decimal numbers.
+The answers from 17 individuals has been excluded from further analyzes, due to no exam result (0 points on the exam).
+
+**To get a better understanding of how the data look, and where to analyze further, we start with creating a overview diagram including all of the comparisons in one image. Gender define the color scheme, where red color represent female students and cyan color represent male once**
+
+```{r}
+#Setting Working Directory
+setwd("C:/IODS/IODS-project")
+#Reading the data set
+learning2014_subset <- read.csv("data/learning2014_subset.csv")
+
+library(ggplot2)
+library(GGally)
+
+p <- ggpairs(learning2014_subset, mapping = aes(col = gender, alpha = 0.5), title = "Figure 1: Data overview", lower = list(combo = wrap("facethist", bins = 15)))
+
+p
+```
+
+As we can see in figure 1, when using the "ggpairs" function we get an initial comparison containing two outputs for each of the pairs, one in the form of graphs where the data points in plotted for each pair and one output showing a pairwise statistical comparison of the data. Since we are interested in how the variables are connected to the learning outcome among the students after the course, displayed as points, the right column and bottom row is the most interesting plots to investigate.  
+
+At a first glance the variable standing out, both while investigating the plots and the numerical values, is the correlation between attitude to statistics and points received at the final exam. Investigating the data further, there might also be a positive correlation between points received and the strategy used by the students and a negative correlation between a surface learning approach and points received. Hence, the three variables was chosen for further investigation.
+
+
+**We hence, first apply a linear regression model investigating the relationship between points received on final exam and each of the three identified  variables.**  
+
+```{r}
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+
+m <- lm(points ~ attitude + stra + surf, data = learning2014_subset)
+
+tab_model(m, title = "Table 1", dv.labels = "First model", show.se = TRUE, show.ci = FALSE,show.stat = TRUE, show.p = TRUE, string.p = "p-value", string.stat = "t-value")
+
+```
+
+The table column reads:
+
+*   Estimates  - The amount of units in points the exam results change for a change of one unit of the specific variable. 
+*   Str. Error - The variation within the sample for the estimate.
+*   t-value    - The fraction of the estimate divided with the standard error of the estimate
+*   p-value    - A statistical comparison, evaluating whether the calculated estimate is different from the 0-hypothesis that a change the specific variable would have 0 affect on points received.
+
+Reading the table 1, with this background, we find that for:
+
+* attitude
+
+  + The estimate of change in points depending on the attitude of the students, suggest that for each change in the unit, describing students attitude to statistics, the exam points will change in the same direction with a magnitude of ~3.40 units, with a standard error of ~0.57. 
+  +  As we can see in the right column the statistical test suggest a significant correlation between attitude to statistics and points received on the exam. 
+
+* strategy
+
+  + While analyzing the influence the study strategy has on on the received points, a smaller change of ~0.85 in points on the exam are estimated to be changed with one unit of strategy, with a standard error of 0,54. 
+  + As seen in the right column the statistical comparison suggest this change to be non significant, likely connected to the relative large error in comparison with the estimated change. 
+
+* surface learning approach 
+  + For the surface learning approach variable the estimate is that for each unit of change the points would change with ~0.59 units, with a standard error of ~ 0.80.
+  + Considering a standard error larger than the estimate, it is not surprising that the statistical test came out suggesting a non significant comparison. 
+  
+Over all the data can be interpreted as that the result on the exam is partly dependent on the attitude the student has to statistics or that the attitude to statistics after finalizing the *"Introduction to Social Statistics"* course are dependent on the performance during the course reflected in the exam points.
+
+
+**Having ruled out a significant correlation between exam outcome and strategy respectively learning approach, a new second linear regression model are created to investigate the relesionchip between points and attitude alone.**
+
+```{r}
+#models and tabel creation
+m <- lm(points ~ attitude + stra + surf, data = learning2014_subset)
+
+m2 <- lm(points ~ attitude, data = learning2014_subset)
+
+tab_model(m, m2, title = "Table 2", dv.labels = c("First model", "Second model"), show.se = TRUE, show.ci = FALSE,show.stat = TRUE, show.p = TRUE, string.p = "p-value",string.est = "Estimates",string.se = "std. Error", string.stat = "t-value")
+
+```
+
+
+**To supplement the table summary, a zoomed in version of the graphical representation in figure 1 is showed (Figure 2), as well as, a graph including the fitted linear regression model independent of gender (Figure 3)**
+
+```{r}
+#plot the comparison 
+library(ggplot2)
+
+p <- ggplot(learning2014_subset, aes(x = attitude, y = points, color = gender)) +
+geom_point() +
+ggtitle("Figure 2")
+
+p
+
+p2 <- ggplot(learning2014_subset, title = "Figure 3", aes(x = attitude, y = points)) +
+geom_point() +
+geom_smooth(method = "lm") +
+ggtitle("Figure 3")
+
+
+p2
+
+
+```
+
+Table 2 displays the second model, only assessing the relationship between points and attitude, side by side with the first model. Interestingly, the estimated change in points depending on the attitude of the students are slightly higher in the second model (~3.53 compared to ~3.40 units) while the standard error is within the same magnitude of ~0.57. As we can see in the p-value columns that the statistical test still suggest a strong significant correlation between attitude to statistics and points received on the exam. 
+
+At this point, its interesting to also look at the $R^{2}$ values calculated for the model.
+
+**Briefly:**
+
+The $R^{2}$ is calculated by dividing the variance explain my the model (m) with the total (t) variance:
+
+$R^{2} = Variance_m/Variance_t$ 
+
+Hence, an optimal correlation would give 100%, while no correlation at all 0%.
+
+The $R^{2}$ value for the models created in this chapter, suggest that at least 19% of the variation in the points received on the final exam, is explained by the variation in attitude to statistics. 
+
+The interpretation of $R^{2}$ values should though, in general, be done with caution since it's not a direct measure of how well the model fit the data. One of the factors that has to be considered assessing the $R^{2}$ value, is that $R^{2}$ always increase for each additional variable included, which can partly explain why we have a lower $R^{2}$ value in the second model. The adjusted $R^{2}$ measurement is designed to take care of this problem, by adding addition parameters considering the total sample size (n) and number of independent variables (k).  
+
+$R^{2}adjusted= 1- (((n-1)*(1-R^{2}))/(n-k-1))$
+
+e.g., for the second model:
+
+$R^{2}adjusted_M1= 1- (((166-1)*(1-0.191))/(166-1-1))=0,186$
+
+Unfortunately this adjustment don't take care of all issue in interpreting the $R^{2}$ measurements. For example the $R^{2}$ values could be rather large even with a model not fitting the data if it happens that the model, intersects the real data at multiple time points. 
+
+For this reason we need to also validate the assumptions done creating the models, by producing residual plots.
+The residual plots are used to investigate if our model following the assumptions on which it rely: 
+
+* The assumption that the errors are normally distributed (Normal Q-Q plot),
+* The assumption that the errors have constant variance (Residuals vs. Fitted plot)
+* The assumption that not a single or multiple outliers skew the plot fit (Residuals vs. Leverage)
+
+
+**The produced residual plots are displayed in figure 4 and discussed below**
+
+```{r}
+par(mfrow = c(2,2))
+plot(m2, which = c(2,1,5))
+mtext("Figure 4", side = 3, line = -2, adj =0.1, outer = TRUE)
+
+```
+
+Investigating the residual plots in table 4, we can see:
+
+* That there is no obvious pattern in the "residual vs. Fitted" panel, suggesting that the error in the model have a rather constant variance. 
+* That according to the Q-Q plot the errors seem to be normal distributed.
+* Analyzing the "Residuals vs. Leverage" plot that even though a few outliers exist in the "Residuals vs. Fitted" plot, since these are located in the middle of the data set, no data point is having any large impact on the model fit.
+
+
+## summary
+
+**In this chapter we are using a linear regression model to investigating the relationship between points received on the final exam on the course  "Introduction to Social Statistics"in Autumn 2014, and the attitude to statistics, study strategy, and study approach respectively. We identified that attitude to statistics correlated with the points received on the exam with an estimate that at least 19% of the variance in points was connected to attitude. The model assumptions was validated utilizing multiple residual plots. Overall we can state that the result on the exam is partly dependent on the attitude the student has to statistics or that the attitude to statistics after finalizing the *"Introduction to Social Statistics"* course are dependent on the performance during the course reflected in the exam points.**
+
+
+
+
