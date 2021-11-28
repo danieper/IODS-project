@@ -1,5 +1,5 @@
 #name Daniel Persson
-#2021-11-20
+#2021-11-28
 #R-script of the Exercise 4 - Creating human -data set
 #Meta file for these data sets: http://hdr.undp.org/en/content/human-development-index-hdi
 
