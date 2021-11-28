@@ -1,0 +1,305 @@
+# Clustering and classification
+
+*Describe the work you have done this week and summarize your learning.*
+
+
+```{r}
+date()
+```
+
+In this chapter we will analyze the R built in data set "Boston" that is located in the R library "Mass". 
+The full data description can be found at [link] https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/Boston.html.
+
+In short the data include demographic data for the "Boston" region and the variables is named as below:
+
+
+* crim - *per capita crime rate by town.*
+* zn - *proportion of residential land zoned for lots over 25,000 sq.ft.*
+* indus - *proportion of non-retail business acres per town*.
+* chas - *Charles River dummy variable (= 1 if tract bounds river; 0 otherwise).*
+* nox - *nitrogen oxides concentration (parts per 10 million).*
+* rm - *average number of rooms per dwelling.*
+* age - *proportion of owner-occupied units built prior to 1940.*
+* dis - *weighted mean of distances to five Boston employment centres.*
+* rad - *index of accessibility to radial highways.*
+* tax - *full-value property-tax rate per $10,000.*
+* ptratio - *pupil-teacher ratio by town.*
+* black - *1000(Bk - 0.63)^2 where Bk is the proportion of blacks by town.*
+* lstat - *lower status of the population (percent).*
+* medv - *median value of owner-occupied homes in $1000s*
+
+```{r}
+#Accessing the MASS package
+library(MASS)
+
+#Loading the data
+data("Boston")
+
+#Exploring the dataset
+str(Boston)
+summary(Boston)
+
+
+```
+**To get a first understanding of the relation between different variables a plot matrix is created.**
+```{r}
+#Plotting matrix of the variables using pairs
+pairs(Boston)
+
+
+```
+
+Looking at the first data plots we can get a brief idea of where we might have correlations:
+
+The most obvious is the correlation between:
+tax - rad: e.g., full-value property-tax rate per $10,000 and index of accessibility to radial highways.
+
+and 
+
+rm and istat/medv: e.g., average number of rooms per dwelling correlated (+) median value of owner-occupied homes in $1000s (-) lower status of the population (percent).
+
+
+**To investigate if out first thought is correct and if other factor can be found we create a correlation matrix**
+```{r}
+#Producing a correlation matrix
+library(tidyr)
+library(corrplot)
+
+#Calculating the correlation matrix and round it
+cor_matrix<-cor(Boston) %>% round(digits = 2)
+
+#Priunting the correlation matrix
+cor_matrix
+
+```
+
+**To easier study the correlation matrix we plot the output**
+```{r}
+#Visualizing the correlation matrix
+corrplot(cor_matrix, method="circle", type="upper", cl.pos="b", tl.pos="d", tl.cex = 0.6)
+
+```
+
+We can see that out correlation matrix confirm the initial thought from just looking at the data.
+E.g.,
+* tax - rad (0.91)
+* rm - istat (-0.61)
+* rm - medv (0.70)
+
+In addition we can from the matrix find that a positive correlation is found between:
+
+* crim - rad (0.63)
+* zn - dis (0.66)
+* indus - nox (0.76)
+* indus - age (0.64)
+* indus - dis (0.6)
+* indus - tax (0.72)
+* nox - age (0.73)
+* nox - rad (0.61)
+* nox - tax (0.67)
+
+and a negative correlation is found for: 
+
+* indus - dis (-0.71)
+* nox - dis (-0.77) 
+* age - dis (-0.75)
+* medv - lstat (-0.74)
+
+The highest positive correlation is, as earlier thought, founf between rad - tax (0.91), e.g., between the index of accessibility to radial highways and a full-value property-tax rate per $10,000.
+
+
+The higest negative correlation is not between rm and medv ad thought just looking at the initial graph, but instead between nox - dis (-0.77), e.g., between the nitrogen oxides concentration (parts per 10 million) and weighted mean of distances to five Boston employment centers.
+
+
+**Scaling and standardizing**
+
+Next we scale the data to standardize for. In scaling, the column means will be subtracted from the corresponding columns and then the difference will be divided with standard deviation.
+
+```{r}
+#Let us center and standardize variables
+boston_scaled <- scale(Boston)
+
+#Summaries of the scaled variables
+summary(boston_scaled)
+
+```
+As we can see from the output from the standardized data the "scale()" function setts the mean of all the variables to 0. In order to maximize compatibility of the variables.
+
+**For later use we change the Boston scaled a data frame.**
+
+```{r}
+#Changing the object to data frame
+boston_scaled <- as.data.frame(boston_scaled)
+
+```
+
+**In the next step we will investigate how the crime rate in Boston. We first divide the data points for crime rate in the four even categories "low", "med_low", "med_high", "high".**
+
+
+```{r}
+#Creating a quantile vector of 'crim' and printing it
+bins <- quantile(boston_scaled$crim)
+bins
+
+#Creating a categorical variable 'crime' according to the quantiles set in bins
+crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, labels = c("low","med_low","med_high","high"))
+
+#Let us look at the table of the new factor crime
+table(crime)
+
+#Dropping original variable 'crim' from the dataset
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+
+#Replacing removed 'crim' with the new categorical value 'crime' to scaled data
+boston_scaled <- data.frame(boston_scaled, crime)
+
+```
+As we can see from the output the groups are now as even as possible in numbers.
+
+* 0%-25% low - *127* 
+* 25%-50% med_low - *126*
+* 50%-75% med_high - *126*
+* 75%-100% high - *127*
+
+
+**For later clustering investigation of our data we need to divide our data set to a ‘train’ and a ‘test’ sets. 80% of the data will go to the ‘train’ set.**
+
+```{r}
+#The number of rows in the Boston data set 
+n <- nrow(boston_scaled)
+
+#Choosing randomly 80% of the rows
+ind <- sample(n,  size = n * 0.8)
+
+#Creating 'train' set (80% of the rows)
+train <- boston_scaled[ind,]
+
+#Creating 'test' set (20% of the rows)
+test <- boston_scaled[-ind,]
+
+#Let us save the correct classes from 'test' data
+correct_classes <- test$crime
+
+#And remove the crime variable from 'test' data
+test <- dplyr::select(test, -crime)
+
+```
+
+**A linear discriminant analysis (LDA) is then carried out on the train set and crating a LDA biplot.**
+
+```{r}
+#A linear discriminant analysis (LDA)
+#Crime rate as target variable, all the others (.) as predictor variables
+lda.fit <- lda(crime ~ ., data = train)
+
+#Printing the lda.fit object
+lda.fit
+
+#The function for lda biplot arrows
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+#Target classes as numeric
+classes <- as.numeric(train$crime)
+
+#Plotting the results of lda
+plot(lda.fit, dimen = 2, col = classes, pch = classes)
+lda.arrows(lda.fit, myscale = 2)
+
+
+```
+
+**We will try to fit the LDA model to our data to see if we could predict the crime data, based on the other variabels.**
+
+```{r}
+#Prediction of the classes with test data
+lda.pred <- predict(lda.fit, newdata = test)
+
+#Cross tabulation of the results
+table(correct = correct_classes, predicted = lda.pred$class)
+
+
+```
+
+As we can find from the cross tabulation output,a majority of the observations have been predicted correctly for the med_low, med_high and high categories (correct numbers are in the diagonal). However, more than 50% of the data points belonging to the low category is predicted wrong category.
+
+
+**Clustering with K-means**
+
+```{r}
+#Reloading MASS and Boston data sets
+library(MASS)
+data('Boston')
+
+#Scaling and standardizing the data set 'Boston'
+boston_scaled1 <- scale(Boston)
+
+#Changing the object to data frame
+boston_scaled2 <- as.data.frame(boston_scaled1)
+
+
+#Euclidean distance matrix
+dist_eu <- dist(boston_scaled2)
+
+#Let us see the summary of the distances
+summary(dist_eu)
+```
+
+```{r}
+#Manhattan distance matrix
+dist_man <- dist(boston_scaled2, method = "manhattan")
+
+#Let us now see the summary of the distances again
+summary(dist_man)
+```
+
+```{r}
+#K-means clustering
+km <-kmeans(boston_scaled2, centers = 3)
+
+#Plotting the Boston dataset with clusters
+#5 columns (columns 6 to 10) have been paired up to make examination more clear
+pairs(boston_scaled2[6:10], col = km$cluster)
+
+
+```
+
+**The optimal amount of clusters is assessed:**
+
+```{r}
+library(ggplot2)
+
+#To ensure that the result does not vary every time
+set.seed(123)
+
+#Determining the number of clusters
+k_max <- 10
+
+#Calculating the total within sum of squares (twcss)
+twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled2, k)$tot.withinss})
+
+#Visualizing the results
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+```
+
+The optimal number of clusters can be found by assessing where the total WCSS is drastically changed. We find from our graph that the optimal amount of clusters is 2 and hence 2 is used for the further analysis.
+
+```{r}
+#K-means clustering
+km <-kmeans(boston_scaled2, centers = 2)
+
+#Plotting the Boston dataset with clusters
+pairs(boston_scaled2[6:10], col = km$cluster)
+
+```
+
+We can see from the plotted clusters that for the variables the clustering sometimes is rather separated as for dis and rad,however for most factors, a slight overlap between the clusters is seen. Interestingly often one of the clusters is rather small and the other more dragged out. 
+
+The nice clustering seen in the comparison between age - (*proportion of owner-occupied units built prior to 1940.*) and dis - *weighted mean of distances to five Boston employment centres.* is interestingly also among the one factors we earlier saw having a high negativ corelation. 
+
